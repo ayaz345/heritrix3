@@ -14,27 +14,26 @@ from docutils.parsers.rst import Directive
 
 def evaluate_expression(expr):
     if isinstance(expr, javalang.tree.Literal):
-        match = re.match("(-?[0-9]+)[Ll]", expr.value)
-        if match:
-            return match.group(1)
+        if match := re.match("(-?[0-9]+)[Ll]", expr.value):
+            return match[1]
         return expr.value
     elif isinstance(expr, javalang.tree.BinaryOperation) and expr.operator == '*':
         lhs = evaluate_expression(expr.operandl)
         rhs = evaluate_expression(expr.operandr.value)
-        if lhs is None or rhs is None: return None
-        return int(lhs) * int(rhs)
+        return None if lhs is None or rhs is None else int(lhs) * int(rhs)
     else:
         return None
 
 
 def parse_java(source_file):
-    model = {}
     with open(source_file) as f:
         tree = javalang.parse.parse(f.read())
     clazz = tree.types[0]
-    model['class'] = tree.package.name + '.' + clazz.name
-    model['bean_id'] = clazz.name[0].lower() + clazz.name[1:]
-    model['properties'] = []
+    model = {
+        'class': f'{tree.package.name}.{clazz.name}',
+        'bean_id': clazz.name[0].lower() + clazz.name[1:],
+        'properties': [],
+    }
     model['doc'] = javalang.javadoc.parse(clazz.documentation) if clazz.documentation else None
 
     property_defaults = {}
